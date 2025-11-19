@@ -1,0 +1,8 @@
+import path from "path";
+
+export default {
+  config: path.resolve("src/config", "index.js"), // path to config used by CLI
+  "models-path": path.resolve("src/loaders", "db.js"), // your models folder
+  "seeders-path": path.resolve("seeders"), // custom seeders path
+  "migrations-path": path.resolve("migrations"), // custom migrations path
+};

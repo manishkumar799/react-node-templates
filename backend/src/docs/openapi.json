@@ -1,0 +1,1209 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "KYC Service", "version": "0.1.0" },
+  "servers": [{ "url": "http://localhost:3000/" }],
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": ["Ops"],
+        "summary": "Service liveness",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": { "type": "boolean" },
+                    "db": { "type": "boolean" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ready": {
+      "get": {
+        "tags": ["Ops"],
+        "summary": "Service readiness",
+        "responses": {
+          "200": {
+            "description": "Ready",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ready": { "type": "boolean" }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Not ready",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ready": { "type": "boolean" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/markets": {
+      "get": {
+        "tags": ["Admin"],
+        "summary": "List markets",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Market" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Admin"],
+        "summary": "Create market",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateMarket" },
+              "example": {
+                "code": "NG",
+                "name": "Nigeria",
+                "active": true,
+                "workflow_config": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Market" }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/kyc/submissions": {
+      "post": {
+        "tags": ["Submissions"],
+        "summary": "Create or reuse draft submission",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateSubmission" },
+              "example": {
+                "market_code": "KE"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Submission" }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": ["Submissions"],
+        "summary": "List submissions for business",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "draft",
+                "submitted",
+                "under_review",
+                "more_info_required",
+                "approved",
+                "rejected",
+                "revoked"
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": { "type": "integer", "minimum": 0, "default": 0 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Submission" }
+                    },
+                    "count": { "type": "integer" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/kyc/submissions/{id}": {
+      "get": {
+        "tags": ["Submissions"],
+        "summary": "Get submission",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionWithDocuments"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/kyc/submissions/{id}/submit": {
+      "post": {
+        "tags": ["Submissions"],
+        "summary": "Submit a draft",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/SubmitAction" },
+              "example": {
+                "confirm": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Submission" }
+              }
+            }
+          },
+          "400": {
+            "description": "Requirements incomplete",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "409": {
+            "description": "Invalid state",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/kyc/submissions/{id}/steps/{stepKey}": {
+      "post": {
+        "tags": ["Submissions"],
+        "summary": "Save data for a specific step",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "description": "Submission ID"
+          },
+          {
+            "name": "stepKey",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "example": "business_details",
+            "description": "Step key (e.g., business_details, identity_verification, business_address, additional_business_details, business_documents)"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["form_data"],
+                "properties": {
+                  "form_data": {
+                    "type": "object",
+                    "description": "Step-specific form data",
+                    "example": {
+                      "registered_business_name": "Acme Corporation Ltd",
+                      "trading_name": "Acme Corp",
+                      "business_registration_type": "Limited Company",
+                      "company_registration_number": "PVT-123456789",
+                      "kra_taxpayer_id": "A123456789P",
+                      "estimated_monthly_sales": 100000
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Step data saved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "next_step": { "type": "integer" },
+                    "completed_steps": {
+                      "type": "array",
+                      "items": { "type": "string" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/ErrorResponse" },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "type": "object",
+                          "properties": {
+                            "details": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "field": { "type": "string" },
+                                  "message": { "type": "string" }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - business role required",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "Submission or step not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": ["Submissions"],
+        "summary": "Get saved data for a specific step",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "description": "Submission ID"
+          },
+          {
+            "name": "stepKey",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "example": "business_details",
+            "description": "Step key"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Step data retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "step_data": {
+                      "type": "object",
+                      "description": "Previously saved form data for this step"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": ["pending", "completed"],
+                      "description": "Step completion status"
+                    },
+                    "completed_at": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - business role required",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "Submission not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/kyc/submissions/{id}/progress": {
+      "get": {
+        "tags": ["Submissions"],
+        "summary": "Get submission progress and completion status",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "description": "Submission ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Submission progress details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "string", "format": "uuid" },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "draft",
+                        "submitted",
+                        "under_review",
+                        "more_info_required",
+                        "approved",
+                        "rejected",
+                        "revoked"
+                      ]
+                    },
+                    "current_step": { "type": "integer" },
+                    "completed_steps": {
+                      "type": "array",
+                      "items": { "type": "string" }
+                    },
+                    "steps": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/SubmissionStep" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - business role required",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "Submission not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/kyc/admin/submissions": {
+      "get": {
+        "tags": ["Admin"],
+        "summary": "Admin list submissions",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "market_code",
+            "in": "query",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "draft",
+                "submitted",
+                "under_review",
+                "more_info_required",
+                "approved",
+                "rejected",
+                "revoked"
+              ]
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": { "type": "string", "format": "date" }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": { "type": "string", "format": "date" }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": { "type": "integer", "minimum": 0, "default": 0 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Submission" }
+                    },
+                    "count": { "type": "integer" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/kyc/admin/submissions/{id}/triage": {
+      "post": {
+        "tags": ["Admin"],
+        "summary": "Move submission from submitted to under_review",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              },
+              "example": {}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Submission" }
+              }
+            }
+          },
+          "409": {
+            "description": "Invalid state",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/kyc/admin/submissions/{id}/decision": {
+      "post": {
+        "tags": ["Admin"],
+        "summary": "Make final decision on submission",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AdminDecision" },
+              "examples": {
+                "approve": {
+                  "summary": "Approve submission",
+                  "value": {
+                    "decision": "approved",
+                    "notes": "All documents verified successfully"
+                  }
+                },
+                "reject": {
+                  "summary": "Reject submission",
+                  "value": {
+                    "decision": "rejected",
+                    "notes": "Invalid business registration number"
+                  }
+                },
+                "request_more_info": {
+                  "summary": "Request more information",
+                  "value": {
+                    "decision": "more_info_required",
+                    "notes": "Please provide a clearer copy of your business license"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Submission" }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid decision",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents/upload": {
+      "post": {
+        "tags": ["Documents"],
+        "summary": "Upload document file",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Document file to upload"
+                  },
+                  "document_type": {
+                    "type": "string",
+                    "enum": [
+                      "aadhaar",
+                      "pan",
+                      "passport",
+                      "driving_license",
+                      "voter_id"
+                    ],
+                    "description": "Type of document being uploaded"
+                  },
+                  "submission_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "KYC submission ID"
+                  }
+                },
+                "required": ["file", "document_type", "submission_id"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Document uploaded successfully",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SubmissionDocument" }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid document type or submission",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing bearer token",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/test/token": {
+      "get": {
+        "tags": ["Test"],
+        "summary": "Generate test JWT token for API testing",
+        "parameters": [
+          {
+            "name": "role",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": ["business", "admin"]
+            },
+            "description": "Role for the generated token"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Test token generated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "token": { "type": "string" },
+                    "role": { "type": "string" },
+                    "expires_in": { "type": "string" },
+                    "usage": { "type": "string" },
+                    "note": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Market": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "code": { "type": "string", "example": "KE" },
+          "name": { "type": "string", "example": "Kenya" },
+          "active": { "type": "boolean" },
+          "workflow_config": { "type": "object" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "KycFormStep": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "market_id": { "type": "string", "format": "uuid" },
+          "step_number": { "type": "integer" },
+          "step_key": { "type": "string", "example": "business_details" },
+          "step_title": { "type": "string", "example": "Business Details" },
+          "step_description": { "type": "string" },
+          "is_required": { "type": "boolean" },
+          "display_order": { "type": "integer" },
+          "is_active": { "type": "boolean" },
+          "version": { "type": "integer" },
+          "kyc_form_fields": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/KycFormField" }
+          },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "KycFormField": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "step_id": { "type": "string", "format": "uuid" },
+          "field_key": {
+            "type": "string",
+            "example": "registered_business_name"
+          },
+          "field_label": {
+            "type": "string",
+            "example": "Registered Business Name"
+          },
+          "field_type": {
+            "type": "string",
+            "enum": [
+              "text",
+              "textarea",
+              "email",
+              "url",
+              "number",
+              "select",
+              "file_upload"
+            ],
+            "example": "text"
+          },
+          "field_options": {
+            "type": "object",
+            "description": "Field-specific options like select options, file constraints",
+            "example": {
+              "options": ["Limited Company", "Sole Proprietorship"],
+              "allowed_types": ["application/pdf", "image/jpeg"],
+              "max_size_mb": 10
+            }
+          },
+          "is_required": { "type": "boolean" },
+          "display_order": { "type": "integer" },
+          "validation_rules": {
+            "type": "object",
+            "description": "Validation constraints",
+            "example": {
+              "min_length": 2,
+              "max_length": 200,
+              "pattern": "^[A-Za-z0-9\\s]+$"
+            }
+          },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "SubmissionStep": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "submission_id": { "type": "string", "format": "uuid" },
+          "step_key": { "type": "string", "example": "business_details" },
+          "step_number": { "type": "integer" },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "completed"],
+            "example": "completed"
+          },
+          "form_data": {
+            "type": "object",
+            "description": "Saved form data for this step"
+          },
+          "completed_at": { "type": "string", "format": "date-time" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "StepSubmissionDocument": {
+        "allOf": [
+          { "$ref": "#/components/schemas/SubmissionDocument" },
+          {
+            "type": "object",
+            "properties": {
+              "step_key": {
+                "type": "string",
+                "example": "identity_verification"
+              },
+              "field_key": {
+                "type": "string",
+                "example": "identity_document_upload"
+              }
+            }
+          }
+        ]
+      },
+      "DocumentType": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "market_id": { "type": "string", "format": "uuid" },
+          "code": { "type": "string", "example": "CERT_OF_INCORP" },
+          "name": {
+            "type": "string",
+            "example": "Certificate of Incorporation"
+          },
+          "description": { "type": "string" },
+          "is_required": { "type": "boolean" },
+          "min_count": { "type": "integer" },
+          "max_count": { "type": "integer" },
+          "allowed_mime_types": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "validations": { "type": "object" },
+          "active": { "type": "boolean" },
+          "version": { "type": "integer" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "CreateMarket": {
+        "type": "object",
+        "required": ["code", "name"],
+        "properties": {
+          "code": { "type": "string", "example": "NG" },
+          "name": { "type": "string", "example": "Nigeria" },
+          "active": { "type": "boolean", "default": true },
+          "workflow_config": { "type": "object", "default": {} }
+        }
+      },
+      "UpsertDocumentType": {
+        "type": "object",
+        "required": [
+          "code",
+          "name",
+          "is_required",
+          "min_count",
+          "max_count",
+          "allowed_mime_types"
+        ],
+        "properties": {
+          "code": { "type": "string", "example": "BUSINESS_LICENSE" },
+          "name": { "type": "string", "example": "Business License" },
+          "description": { "type": "string" },
+          "is_required": { "type": "boolean" },
+          "min_count": { "type": "integer", "minimum": 0 },
+          "max_count": { "type": "integer", "minimum": 1 },
+          "allowed_mime_types": {
+            "type": "array",
+            "items": { "type": "string" },
+            "example": ["application/pdf", "image/jpeg", "image/png"]
+          },
+          "validations": {
+            "type": "object",
+            "properties": {
+              "size_max_mb": { "type": "integer", "minimum": 1, "maximum": 50 },
+              "expiry_days": { "type": "integer", "minimum": 0 }
+            }
+          },
+          "active": { "type": "boolean", "default": true }
+        }
+      },
+      "CreateSubmission": {
+        "type": "object",
+        "required": ["market_code"],
+        "properties": {
+          "market_code": { "type": "string", "example": "KE" }
+        }
+      },
+      "UpdateSubmission": {
+        "type": "object",
+        "required": ["business_details"],
+        "properties": {
+          "business_details": {
+            "type": "object",
+            "properties": {
+              "legal_name": {
+                "type": "string",
+                "example": "Acme Corporation Limited"
+              },
+              "registration_number": {
+                "type": "string",
+                "example": "PVT-987654321"
+              },
+              "country": {
+                "type": "string",
+                "minLength": 2,
+                "maxLength": 2,
+                "example": "KE"
+              }
+            }
+          }
+        }
+      },
+      "SubmitAction": {
+        "type": "object",
+        "required": ["confirm"],
+        "properties": {
+          "confirm": { "type": "boolean", "enum": [true] }
+        }
+      },
+      "AdminDecision": {
+        "type": "object",
+        "required": ["decision"],
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": ["more_info_required", "approved", "rejected"]
+          },
+          "notes": { "type": "string" }
+        }
+      },
+      "DocumentDecision": {
+        "type": "object",
+        "required": ["decision"],
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": ["approve", "reject"]
+          },
+          "reason": { "type": "string" }
+        }
+      },
+      "DocumentUpload": {
+        "type": "object",
+        "required": [
+          "submission_id",
+          "document_type_code",
+          "cloudinary_public_id",
+          "cloudinary_secure_url",
+          "filename",
+          "mime_type",
+          "size_bytes"
+        ],
+        "properties": {
+          "submission_id": { "type": "string", "format": "uuid" },
+          "document_type_code": {
+            "type": "string",
+            "example": "CERT_OF_INCORP"
+          },
+          "cloudinary_public_id": {
+            "type": "string",
+            "example": "kyc/abc123def456"
+          },
+          "cloudinary_secure_url": { "type": "string", "format": "uri" },
+          "filename": { "type": "string", "example": "certificate.pdf" },
+          "mime_type": { "type": "string", "example": "application/pdf" },
+          "size_bytes": { "type": "integer", "minimum": 1 }
+        }
+      },
+      "Submission": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "business_id": { "type": "string", "format": "uuid" },
+          "market_id": { "type": "string", "format": "uuid" },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "submitted",
+              "under_review",
+              "more_info_required",
+              "approved",
+              "rejected",
+              "revoked"
+            ]
+          },
+          "current_step": {
+            "type": "integer",
+            "description": "Current step number the user is on",
+            "example": 3
+          },
+          "completed_steps": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Array of completed step keys",
+            "example": ["business_details", "identity_verification"]
+          },
+          "form_data": {
+            "type": "object",
+            "description": "Legacy field for backward compatibility"
+          },
+          "metadata": { "type": "object" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "SubmissionDocument": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "url": { "type": "string" },
+          "public_id": { "type": "string" },
+          "filename": { "type": "string" },
+          "mime_type": { "type": "string" },
+          "size_bytes": { "type": "integer" },
+          "status": {
+            "type": "string",
+            "enum": ["uploaded", "validated", "approved", "rejected", "flagged"]
+          }
+        }
+      },
+      "SubmissionWithDocuments": {
+        "allOf": [
+          { "$ref": "#/components/schemas/Submission" },
+          {
+            "type": "object",
+            "properties": {
+              "kyc_submission_documents": {
+                "type": "array",
+                "items": { "$ref": "#/components/schemas/SubmissionDocument" }
+              }
+            }
+          }
+        ]
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": { "type": "string" },
+              "message": { "type": "string" },
+              "details": {
+                "oneOf": [
+                  { "type": "array", "items": { "type": "string" } },
+                  { "type": "object" }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "security": [{ "BearerAuth": [] }]
+}

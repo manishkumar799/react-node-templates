@@ -1,0 +1,17 @@
+services:
+postgres:
+image: postgres:16
+container_name: kyc_postgres
+environment:
+POSTGRES_DB: kyc_service
+POSTGRES_USER: postgres
+POSTGRES_PASSWORD: postgres
+ports:
+- "5432:5432"
+volumes:
+- ./docker-data/postgres:/var/lib/postgresql/data
+adminer:
+image: adminer
+restart: always
+ports:
+- "8080:8080"

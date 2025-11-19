@@ -1,0 +1,49 @@
+{
+  "name": "backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "nodemon src/server.js",
+    "start": "node src/server.js",
+    "lint": "eslint .",
+    "test": "jest",
+    "migrate": "sequelize db:migrate",
+    "seed": "sequelize db:seed:all",
+    "migrate:undo": "sequelize db:migrate:undo",
+    "seed:undo": "sequelize db:seed:undo:all"
+  },
+  "engines": {
+    "node": ">=18.17"
+  },
+  "dependencies": {
+    "cloudinary": "^2.7.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.1",
+    "express": "^4.18.2",
+    "helmet": "^8.1.0",
+    "joi": "^18.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "jwks-rsa": "^3.2.0",
+    "multer": "^2.0.2",
+    "pg": "^8.16.3",
+    "pg-hstore": "^2.3.4",
+    "pino": "^9.9.0",
+    "pino-http": "^10.5.0",
+    "sequelize": "^6.37.7",
+    "swagger-ui-express": "^5.0.1",
+    "uuid": "^11.1.0",
+    "yaml": "^2.8.1"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.1",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-plugin-import": "^2.32.0",
+    "jest": "^30.0.5",
+    "nodemon": "^3.1.10",
+    "pino-pretty": "^13.1.1",
+    "sequelize-cli": "^6.6.3",
+    "supertest": "^7.1.4"
+  }
+}
