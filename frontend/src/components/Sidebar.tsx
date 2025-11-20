@@ -1,4 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom"
+import { useAuth } from "@/context/AuthContext"
 import {
     LayoutDashboard,
     RefreshCw,
@@ -48,6 +49,7 @@ import { Button } from "@/components/ui/button"
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     const location = useLocation()
     const navigate = useNavigate()
+    const { user, logout } = useAuth()
     const pathname = location.pathname
 
     const navItems = [
@@ -75,6 +77,21 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         if (path !== "#") {
             navigate(path)
         }
+    }
+
+    const handleLogout = () => {
+        logout()
+        navigate("/login")
+    }
+
+    // Get initials from name
+    const getInitials = (name: string) => {
+        return name
+            .split(" ")
+            .map((n) => n[0])
+            .join("")
+            .toUpperCase()
+            .substring(0, 2)
     }
 
     return (
@@ -167,11 +184,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                                     className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                                 >
                                     <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-muted border-2 text-sidebar-primary-foreground">
-                                        <span className="text-xs font-medium text-foreground">CN</span>
+                                        <span className="text-xs font-medium text-foreground">
+                                            {user ? getInitials(user.name) : "G"}
+                                        </span>
                                     </div>
                                     <div className="grid flex-1 text-left text-sm leading-tight">
-                                        <span className="truncate font-semibold">shadcn</span>
-                                        <span className="truncate text-xs">m@example.com</span>
+                                        <span className="truncate font-semibold">{user?.name || "Guest"}</span>
+                                        <span className="truncate text-xs">{user?.email || "guest@example.com"}</span>
                                     </div>
                                     <ChevronsUpDown className="ml-auto size-4" />
                                 </SidebarMenuButton>
@@ -185,11 +204,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                                 <DropdownMenuLabel className="p-0 font-normal">
                                     <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                                         <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-muted border-2 text-sidebar-primary-foreground">
-                                            <span className="text-xs font-medium text-foreground">CN</span>
+                                            <span className="text-xs font-medium text-foreground">
+                                                {user ? getInitials(user.name) : "G"}
+                                            </span>
                                         </div>
                                         <div className="grid flex-1 text-left text-sm leading-tight">
-                                            <span className="truncate font-semibold">shadcn</span>
-                                            <span className="truncate text-xs">m@example.com</span>
+                                            <span className="truncate font-semibold">{user?.name || "Guest"}</span>
+                                            <span className="truncate text-xs">{user?.email || "guest@example.com"}</span>
                                         </div>
                                     </div>
                                 </DropdownMenuLabel>
@@ -216,7 +237,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                                     </DropdownMenuItem>
                                 </DropdownMenuGroup>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem>
+                                <DropdownMenuItem onClick={handleLogout}>
                                     <LogOut className="mr-2 size-4" />
                                     Log out
                                 </DropdownMenuItem>
