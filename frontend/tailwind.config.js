@@ -44,15 +44,15 @@ export default {
 					foreground: 'var(--card-foreground)'
 				},
 				sidebar: {
-					DEFAULT: 'var(--sidebar-background)',
-					foreground: 'var(--sidebar-foreground)',
-					primary: 'var(--sidebar-primary)',
+					DEFAULT: 'hsl(var(--sidebar-background))',
+					foreground: 'hsl(var(--sidebar-foreground))',
+					primary: 'hsl(var(--sidebar-primary))',
 					'primary-foreground': 'var(--sidebar-primary-foreground)',
 					accent: 'var(--sidebar-accent)',
 					'accent-foreground': 'var(--sidebar-accent-foreground)',
-					border: 'var(--sidebar-border)',
-					ring: 'var(--sidebar-ring)',
-					'primary-foreground': 'var(--sidebar-primary-foreground)',
+					border: 'hsl(var(--sidebar-border))',
+					ring: 'hsl(var(--sidebar-ring))',
+					'primary-foreground': 'hsl(var(--sidebar-primary-foreground))',
 					'accent-foreground': 'var(--sidebar-accent-foreground)'
 				},
 				chart: {
